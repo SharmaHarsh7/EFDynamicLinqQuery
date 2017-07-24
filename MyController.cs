@@ -4,9 +4,9 @@
             IList<string> selectedProperties = columns.Split(',').ToList();
 
 
-            using (NutriSolutionsEntities dbContext = new NutriSolutionsEntities())
+            using (DBContext dbContext = new DBContext())
             {
-                var data = dbContext.Growers.Where(x => x.FirstName.StartsWith("G")).SelectProperties(selectedProperties);
+                var data = dbContext.Employee.Where(x => x.FirstName.StartsWith("G")).SelectProperties(selectedProperties);
 
 
                 return Request.CreateResponse(HttpStatusCode.OK, data.ToList());
