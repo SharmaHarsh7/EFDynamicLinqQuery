@@ -9,6 +9,52 @@ namespace EFDynamicLinqQuery
 {
     public static class SelectiveQuery
     {
+        
+         public static ICollection<object> SelectPropertiesDynamic<T>(
+            this IQueryable<T> source,
+            IEnumerable<string> selectedProperties) where T : class
+        {
+            // Take properties from the mapped entitiy that match selected properties
+            IDictionary<string, PropertyInfo> sourceProperties =
+                GetTypeProperties<T>(selectedProperties);
+
+            // Construct runtime type by given property configuration
+            Type runtimeType = RuntimeTypeBuilder.GetRuntimeType(sourceProperties);
+            Type sourceType = typeof(T);
+
+            // Create instance of source parameter
+            ParameterExpression sourceParameter = Expression.Parameter(sourceType, "t");
+
+            // Take fields from generated runtime type
+            FieldInfo[] runtimeTypeFields = runtimeType.GetFields();
+
+            // Generate bindings from source type to runtime type
+            IEnumerable<MemberBinding> bindingsToRuntimeType = runtimeTypeFields
+                .Select(field => Expression.Bind(
+                    field,
+                    Expression.Property(
+                        sourceParameter,
+                        sourceProperties[field.Name]
+                    )
+                ));
+
+            // Generate projection trom T to runtimeType and cast as IQueryable<object>
+            IQueryable<object> runtimeTypeSelectExpressionQuery
+                = GetTypeSelectExpressionQuery<object>(
+                    sourceType,
+                    runtimeType,
+                    bindingsToRuntimeType,
+                    source,
+                    sourceParameter
+            );
+
+            // Get result from database
+            List<object> listOfObjects = runtimeTypeSelectExpressionQuery.ToList();
+
+            return listOfObjects;
+
+        }
+        
         public static ICollection<T> SelectProperties<T>(
             this IQueryable<T> source,
             IEnumerable<string> selectedProperties) where T : class
